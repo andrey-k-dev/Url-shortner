@@ -1,12 +1,16 @@
 package com.pet.urlshortner.service.impl;
 
 import com.pet.urlshortner.config.shortenerConfig.ShortenerConfigProperties;
+import com.pet.urlshortner.dto.ClickEvent;
 import com.pet.urlshortner.dto.CreateLinkRequestDto;
 import com.pet.urlshortner.dto.CreateLinkResponseDto;
+import com.pet.urlshortner.dto.RedirectResult;
 import com.pet.urlshortner.entity.Link;
 import com.pet.urlshortner.exception.AppException;
+import com.pet.urlshortner.kafka.producer.ClickEventProducer;
 import com.pet.urlshortner.repository.LinkRepository;
 import com.pet.urlshortner.service.LinkService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -19,6 +23,7 @@ import java.time.LocalDateTime;
 public class LinkServiceImpl implements LinkService {
     private final LinkRepository linkRepository;
     private final ShortenerConfigProperties shortenerConfig;
+    private final ClickEventProducer eventProducer;
 
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final String ALPHABET =
@@ -58,6 +63,24 @@ public class LinkServiceImpl implements LinkService {
                 .expiresAt(link.getExpiredAt())
                 .isActive(link.isActive())
                 .build();
+    }
+
+    @Override
+    public RedirectResult redirect(String shortCode, HttpServletRequest request) {
+        var link = linkRepository.findByShortCode(shortCode)
+                .orElseThrow(() -> new AppException("Ссылка не найдена", HttpStatus.NOT_FOUND));
+
+        if(!link.isActive()){
+            throw new AppException("Ссылка не активна", HttpStatus.GONE);
+        }
+
+        if(link.getExpiredAt() != null && link.getExpiredAt().isBefore(LocalDateTime.now())){
+            throw new AppException("Срок действия ссылки уже завершился", HttpStatus.GONE);
+        }
+
+        eventProducer.send(ClickEvent.of(link.getShortCode(), request));
+
+        return new RedirectResult(link.getOriginalUrl(), link.getRedirectType());
     }
 
     private String generateShortCode(int length) {
