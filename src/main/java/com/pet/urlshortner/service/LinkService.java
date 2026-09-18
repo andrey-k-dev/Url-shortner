@@ -8,4 +8,5 @@ import jakarta.servlet.http.HttpServletRequest;
 public interface LinkService {
     CreateLinkResponseDto createLink(CreateLinkRequestDto request);
     RedirectResult redirect(String shortCode, HttpServletRequest request);
+    void deactivateLink(String shortCode);
 }

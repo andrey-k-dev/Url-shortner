@@ -13,7 +13,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -64,7 +63,7 @@ public class ClickPersistenceConsumer {
         entity.setIp(event.ip());
         entity.setUserAgent(event.userAgent());
         entity.setReferer(event.referer());
-        entity.setClickedAt(LocalDateTime.ofInstant(event.timestamp(), ZoneOffset.UTC));
+        entity.setClickedAt(LocalDateTime.now());
         return entity;
     }
 }

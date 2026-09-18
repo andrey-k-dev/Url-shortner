@@ -32,4 +32,11 @@ public class LinkController {
                 .location(URI.create(redirectResult.originalUrl()))
                 .build();
     }
+
+    @PatchMapping("/api/v1/link/{shortCode}/deactivate/")
+    public ResponseEntity<Void> deactivate(@PathVariable String shortCode) {
+        linkService.deactivateLink(shortCode);
+        return ResponseEntity.noContent().build();
+    }
+
 }
